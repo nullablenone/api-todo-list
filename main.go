@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
+	"strings"
 )
 
 type Todo struct {
@@ -52,10 +54,34 @@ func lihatSemua(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(todo_list)
 }
 
+func lihatDetail(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Hanya mendukung method GET", http.StatusMethodNotAllowed)
+		return
+	}
+
+	idStr := strings.TrimPrefix(r.URL.Path, "/todo/lihat-detail/")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "ID tidak valid!", http.StatusBadRequest)
+		return
+	}
+
+	for _, i := range todo_list {
+		if id == i.ID {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+
+			json.NewEncoder(w).Encode(i)
+		}
+	}
+}
+
 func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/todo/tambah", tambah)
 	mux.HandleFunc("/todo/lihat-semua", lihatSemua)
+	mux.HandleFunc("/todo/lihat-detail/{id}", lihatDetail)
 
 	http.ListenAndServe(":99", mux)
 }
