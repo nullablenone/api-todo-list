@@ -40,9 +40,22 @@ func tambah(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+func lihatSemua(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Hanya mendukung method GET", http.StatusMethodNotAllowed)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	json.NewEncoder(w).Encode(todo_list)
+}
+
 func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/todo/tambah", tambah)
+	mux.HandleFunc("/todo/lihat-semua", lihatSemua)
 
 	http.ListenAndServe(":99", mux)
 }
