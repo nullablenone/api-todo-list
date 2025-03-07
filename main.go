@@ -118,12 +118,39 @@ func perbarui(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Todo tidak ditemukan", http.StatusNotFound)
 }
 
+func hapus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "Hanya mendukung method DELETE", http.StatusMethodNotAllowed)
+		return
+	}
+
+	idStr := strings.TrimPrefix(r.URL.Path, "/todo/hapus/")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "ID tidak valid!", http.StatusBadRequest)
+		return
+	}
+
+	for i, t := range todo_list {
+		if t.ID == id {
+			// Hapus dari slice
+			todo_list = append(todo_list[:i], todo_list[i+1:]...)
+
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+	}
+
+	http.Error(w, "Todo tidak ditemukan!", http.StatusNotFound)
+}
+
 func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/todo/tambah", tambah)
 	mux.HandleFunc("/todo/lihat-semua", lihatSemua)
 	mux.HandleFunc("/todo/lihat-detail/{id}", lihatDetail)
 	mux.HandleFunc("/todo/perbarui/{id}", perbarui)
+	mux.HandleFunc("/todo/hapus/{id}", hapus)
 
 	http.ListenAndServe(":99", mux)
 }
