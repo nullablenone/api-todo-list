@@ -14,7 +14,10 @@ type Todo struct {
 	Selesai   bool   `json:"selesai"`
 }
 
-var todo_list []Todo
+var (
+	todo_list []Todo
+	lastId    int
+)
 
 func tambah(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -28,7 +31,8 @@ func tambah(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Gagal decode JSON", http.StatusBadRequest)
 		return
 	}
-	todo.ID = len(todo_list) + 1
+	lastId++
+	todo.ID = lastId
 	todo_list = append(todo_list, todo)
 
 	w.Header().Set("Content-Type", "application/json")
@@ -37,7 +41,7 @@ func tambah(w http.ResponseWriter, r *http.Request) {
 	response := map[string]interface{}{
 		"pesan":  "Berhasil membuat data!",
 		"data":   todo,
-		"status": http.StatusOK,
+		"status": http.StatusCreated,
 	}
 	json.NewEncoder(w).Encode(response)
 }
@@ -51,7 +55,13 @@ func lihatSemua(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	json.NewEncoder(w).Encode(todo_list)
+	response := map[string]interface{}{
+		"pesan":  "Berhasil mengambil data!",
+		"data":   todo_list,
+		"status": http.StatusOK,
+	}
+
+	json.NewEncoder(w).Encode(response)
 }
 
 func lihatDetail(w http.ResponseWriter, r *http.Request) {
@@ -73,13 +83,15 @@ func lihatDetail(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 
 			json.NewEncoder(w).Encode(i)
+			return
 		}
 	}
+	http.Error(w, "Todo tidak ditemukan!", http.StatusNotFound)
 }
 
 func perbarui(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut {
-		http.Error(w, "Hanya mendukung method Put", http.StatusMethodNotAllowed)
+		http.Error(w, "Hanya mendukung method PUT", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -110,6 +122,7 @@ func perbarui(w http.ResponseWriter, r *http.Request) {
 			}
 
 			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(response)
 			return
 		}
@@ -136,7 +149,14 @@ func hapus(w http.ResponseWriter, r *http.Request) {
 			// Hapus dari slice
 			todo_list = append(todo_list[:i], todo_list[i+1:]...)
 
-			w.WriteHeader(http.StatusNoContent)
+			response := map[string]interface{}{
+				"pesan":  "Berhasil menghapus data!",
+				"status": http.StatusOK,
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(response)
 			return
 		}
 	}
@@ -148,9 +168,9 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/todo/tambah", tambah)
 	mux.HandleFunc("/todo/lihat-semua", lihatSemua)
-	mux.HandleFunc("/todo/lihat-detail/{id}", lihatDetail)
-	mux.HandleFunc("/todo/perbarui/{id}", perbarui)
-	mux.HandleFunc("/todo/hapus/{id}", hapus)
+	mux.HandleFunc("/todo/lihat-detail/", lihatDetail)
+	mux.HandleFunc("/todo/perbarui/", perbarui)
+	mux.HandleFunc("/todo/hapus/", hapus)
 
 	http.ListenAndServe(":99", mux)
 }
