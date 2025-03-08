@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -18,6 +19,16 @@ var (
 	todo_list []Todo
 	lastId    int
 )
+
+// middleware logging
+func loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// log informasi request
+		log.Printf("Method: %s, URL: %s, RemoteAddr: %s", r.Method, r.URL.Path, r.RemoteAddr)
+		// lanjut ke handler berikutnya
+		next.ServeHTTP(w, r)
+	})
+}
 
 func tambah(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -172,5 +183,8 @@ func main() {
 	mux.HandleFunc("/todo/perbarui/", perbarui)
 	mux.HandleFunc("/todo/hapus/", hapus)
 
-	http.ListenAndServe(":99", mux)
+	// middleware logging
+	loggedMux := loggingMiddleware(mux)
+
+	http.ListenAndServe(":99", loggedMux)
 }
